@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Sync Service - Meetings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a2e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+            font-size: 1.1rem;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .meeting-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .meeting-card {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            padding: 1.25rem;
+            transition: box-shadow 0.2s;
+        }
+
+        .meeting-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .meeting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .meeting-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .source-badges {
+            display: flex;
+            gap: 0.4rem;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-crm {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-calendar {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .meeting-datetime {
+            color: #555;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .meeting-details {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .meeting-details .detail-row {
+            margin-bottom: 0.4rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .conflict-field {
+            background: #fff8e1;
+            border-left: 3px solid #ffa000;
+            padding: 0.5rem 0.75rem;
+            margin: 0.4rem 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .conflict-indicator {
+            color: #e65100;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .conflict-primary {
+            font-weight: 500;
+        }
+
+        .conflict-alt {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+            font-style: italic;
+        }
+
+        .conflict-source {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Event Sync Service - Meetings</h1>
+
+    {% if not meetings %}
+    <div class="empty-state">
+        <p>No meetings available.</p>
+    </div>
+    {% else %}
+    <div class="meeting-list">
+        {% for meeting in meetings %}
+        <div class="meeting-card">
+            <div class="meeting-header">
+                <span class="meeting-title">
+                    {% if meeting.title.is_conflict %}
+                        ⚠️ {{ meeting.title.value }}
+                    {% else %}
+                        {{ meeting.title.value }}
+                    {% endif %}
+                </span>
+                <div class="source-badges">
+                    {% if "crm" in meeting.sources and "calendar" in meeting.sources %}
+                        <span class="badge badge-crm">CRM</span>
+                        <span class="badge badge-calendar">Calendar</span>
+                    {% elif "crm" in meeting.sources %}
+                        <span class="badge badge-crm">CRM</span>
+                    {% elif "calendar" in meeting.sources %}
+                        <span class="badge badge-calendar">Calendar</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="meeting-datetime">
+                {% if meeting.start_time.value %}
+                    {{ meeting.start_time.value.strftime('%B %d, %Y at %I:%M %p') }}
+                {% else %}
+                    <em>Date/time not available</em>
+                {% endif %}
+                {% if meeting.end_time.value %}
+                    &mdash; {{ meeting.end_time.value.strftime('%I:%M %p') }}
+                {% endif %}
+            </div>
+
+            <div class="meeting-details">
+                {% if meeting.organizer.value %}
+                <div class="detail-row">
+                    <span class="detail-label">Organizer:</span> {{ meeting.organizer.value }}
+                </div>
+                {% endif %}
+
+                {% if meeting.location.value %}
+                <div class="detail-row">
+                    <span class="detail-label">Location:</span> {{ meeting.location.value }}
+                </div>
+                {% endif %}
+
+                {% if meeting.attendees.value %}
+                <div class="detail-row">
+                    <span class="detail-label">Attendees:</span> {{ meeting.attendees.value | join(', ') }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if meeting.conflicts %}
+            <div class="meeting-conflicts" style="margin-top: 0.75rem;">
+                {% for conflict in meeting.conflicts %}
+                <div class="conflict-field">
+                    <div class="conflict-indicator">⚠️ Conflict: {{ conflict.field_name }}</div>
+                    <div class="conflict-primary">
+                        <span class="conflict-source">[{{ conflict.primary_source | upper }}]</span>
+                        {{ conflict.primary_value }}
+                    </div>
+                    <div class="conflict-alt">
+                        Alt (<span class="conflict-source">{{ conflict.alternative_source | upper }}</span>): {{ conflict.alternative_value }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</body>
+</html>
