@@ -72,12 +72,12 @@ class ReconciliationEngine:
     ) -> float:
         """Score based on Jaccard similarity of attendee sets.
 
-        Performs case-insensitive comparison. Returns 0.0 if both sets
-        are empty (avoids division by zero).
+        Performs case-insensitive comparison and normalizes emails to
+        name tokens so that "Sarah Chen" can match "sarah.chen@firma.com".
+        Returns 0.0 if both sets are empty (avoids division by zero).
         """
-        # Normalize to lowercase for case-insensitive comparison
-        normalized_a = {a.lower() for a in attendees_a}
-        normalized_b = {b.lower() for b in attendees_b}
+        normalized_a = {self._normalize_attendee(a) for a in attendees_a}
+        normalized_b = {self._normalize_attendee(b) for b in attendees_b}
 
         union = normalized_a | normalized_b
         if not union:
@@ -85,6 +85,28 @@ class ReconciliationEngine:
 
         intersection = normalized_a & normalized_b
         return len(intersection) / len(union)
+
+    @staticmethod
+    def _normalize_attendee(attendee: str) -> str:
+        """Normalize an attendee string for comparison.
+
+        Converts emails like 'sarah.chen@firma.com' to 'sarah chen'
+        and names like 'Sarah Chen' to 'sarah chen' so they can match.
+        """
+        attendee = attendee.lower().strip()
+
+        # If it looks like an email, extract the local part and split on dots/underscores
+        if "@" in attendee:
+            local_part = attendee.split("@")[0]
+            # Replace dots, underscores, hyphens with spaces
+            normalized = local_part.replace(".", " ").replace("_", " ").replace("-", " ")
+            # Sort tokens for order-independent matching
+            tokens = sorted(normalized.split())
+            return " ".join(tokens)
+
+        # For names, just lowercase and sort tokens
+        tokens = sorted(attendee.split())
+        return " ".join(tokens)
 
     def _subject_similarity_score(self, subject_a: str, subject_b: str) -> float:
         """Score based on string similarity using SequenceMatcher.
