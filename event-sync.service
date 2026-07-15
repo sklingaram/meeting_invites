@@ -1,0 +1,20 @@
+[Unit]
+Description=Event Sync Service (Gunicorn)
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/event-sync
+RuntimeDirectory=event-sync
+LogsDirectory=event-sync
+ExecStart=/opt/event-sync/venv/bin/gunicorn --config gunicorn.conf.py "app.app:create_app()"
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
