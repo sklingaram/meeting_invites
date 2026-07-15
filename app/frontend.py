@@ -20,7 +20,7 @@ def init_frontend(meetings: list[UnifiedMeeting]) -> None:
     _meetings = meetings
 
 
-@frontend_bp.route("/")
+@frontend_bp.route("/meetings")
 def meeting_list():
     """Render the meeting list page sorted by date/time descending."""
     from datetime import datetime
